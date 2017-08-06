@@ -1,4 +1,5 @@
 //package PageParser;
+import InstaJsonManager.*;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -29,22 +30,51 @@ import java.sql.*;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.HashMap;
 import java.io.BufferedWriter;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.internal.LinkedTreeMap;
 
 public class testBot {
 
+
     public static void main(String[] args){
+	JsonHandler blu = new JsonHandler();
+	TagJson jsn = new TagJson();
 	System.out.println("bla");
 	PageHandler pgHand = new PageHandler();
+	pgHand.silent(true);
 	String loginUrl = "https://www.instagram.com/accounts/login/ajax/";
 	String ref = "https://www.instagram.com/accounts/login/";
 	String likeUrl = "https://www.instagram.com/web/likes/1174660949266339394/like/";
-	String picUrl = "https://www.instagram.com/p/BBNO-jkixZC/?tagged=ghjf";
+	String picUrl = "https://www.instagram.com/p/";
+	String tagUrl = "https://www.instagram.com/explore/tags/l4l/";
 	try{
 	    //pgHand.tofile(pgHand.GetPageContent(logiUrl));
-	    pgHand.GetPageContent(ref);
-	    String params = "username="+URLEncoder.encode("treemmetries", "UTF-8")+"&"+"password="+URLEncoder.encode("123ABC", "UTF-8");//pgHand.getFormParams(pgHand.GetPageContent(logiUrl));
-	    pgHand.sendPost(loginUrl, params, "https://www.instagram.com/p/BBNO-jkixZC/?tagged=ghjf");
+	    //pgHand.GetPageContent(ref)
+	    //pgHand.tofile(pgHand.GetPageContent(tagUrl), "json.txt");
+	    //pgHand.getStuff(pgHand.GetPageContent(tagUrl));
+	    pgHand.getJson(pgHand.GetPageContent(tagUrl));
+	    pgHand.testJson();
+	    pgHand.getJsonFromString("{\"text\": \"foo\"}",HashMap.class);
+	    //jsn = pgHand.getJsonFromString(pgHand.GetPageContent(tagUrl+"?__a=1"), TagJson.class);
+	    //pgHand.getJsonString(pgHand.GetPageContent(tagUrl))
+	    jsn = pgHand.getJsonFromString(pgHand.getJsonString(pgHand.GetPageContent(tagUrl)), TagJson.class);
+	    System.out.println("Cuuuuuuursor: "+jsn.getCursor());
+	    //String strJsn = pgHand.GetPageContent(picUrl+jsn.getSimpleNodes().get(0).getShortcode()+"/?__a=1");
+	    PicJson picJson;
+	    for(SimpleNode nd : jsn.getSimpleNodes()){
+		//String strJsn = pgHand.GetPageContent(picUrl+jsn.getSimpleNodes().get(0).getShortcode()+"/?__a=1");
+	    String strJsn = pgHand.GetPageContent(picUrl+nd.getShortcode()+"/?__a=1");
+	    picJson = pgHand.getJsonFromString(strJsn, PicJson.class);
+	    System.out.println("Picture Comment Count: "+picJson.getCommentCount());
+	    System.out.println("Picture Like Count: "+picJson.getLikeCount());
+	    }
+
+	    //String params = "username="+URLEncoder.encode("treemmetries", "UTF-8")+"&"+"password="+URLEncoder.encode("123ABC", "UTF-8");//pgHand.getFormParams(pgHand.GetPageContent(logiUrl));
+	    //pgHand.sendPost(loginUrl, params, "https://www.instagram.com/p/BBNO-jkixZC/?tagged=ghjf");
 	    //pgHand.tofile(pgHand.GetPageContent("https://www.instagram.com/accounts/edit/"), "priv.html");
 	    //pgHand.GetPageContent(picUrl);
 	    //pgHand.sendPost(likeUrl, "", ref);
@@ -60,50 +90,124 @@ public class testBot {
 
 class PageHandler{
 
+    private final String queryId_loadMore = "17875800862117404";
+    private boolean _silent;
+
     private HttpURLConnection conn;
-    private List<String> cookies;
     static final String COOKIES_HEADER = "Set-Cookie";
-    //private final String USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:48.0) Gecko/20100101 Firefox/48.0";//"Mozilla/5.0";
     private final String USER_AGENT = "Mozilla/5.0";
     static java.net.CookieManager msCookieManager = new java.net.CookieManager();
 
+    TagJson picJsn;
+
+    private void printToConsole(String msg){
+	if(!_silent) System.out.println(msg);
+    }
+
+    public void silent(boolean state){
+	_silent = state;
+    }
+
+    public String getRedirectedURL(HttpURLConnection connection){
+	int resp = 0;
+	try{
+	    resp = connection.getResponseCode();
+	} catch(Exception e){
+	    e.printStackTrace();
+	}
+	if (resp != HttpURLConnection.HTTP_OK & ( resp == HttpURLConnection.HTTP_MOVED_TEMP || resp == HttpURLConnection.HTTP_MOVED_PERM ) ) {
+	    return connection.getHeaderField("Location");
+	}
+	return "";
+    }
+
+    public String getJsonString(String html){
+	//String buf ="";
+	String[] bufArray;
+	//HashMap<String, String> map = new HashMap<String, String>();
+	Document doc = Jsoup.parse(html);
+	Elements scriptElements = doc.getElementsByTag("script");
+	for(Element scriptElement : scriptElements){
+	    //buf+="---newline--->"+scriptElement.html()+"\n";
+	    bufArray = scriptElement.html().split("=");
+	    //System.out.println(bufArray[0] +"\n"+ bufArray[1]);
+	    if (bufArray[0].equals("window._sharedData ")) return bufArray[1].substring(0, bufArray[1].length() - 1);
+	}
+	//tofile(buf,"getStuff.txt");
+	return "";
+    }
+
+    public static <T> T getJsonFromString(String jsonString, Class<T> var){
+	GsonBuilder builder = new GsonBuilder();
+	return builder.create().fromJson(jsonString, var);
+    }
+
+    public <T> SimpleJson getSimpleJsonFromString(String jsonString, Class<T> type){
+
+	/*GsonBuilder builder = new GsonBuilder();
+	  SimpleJson bufJson;
+	  if(type == TagJson.class){
+	  return builder.create().fromJson(jsonString, TagJson.class);
+	  } else if (type == ScrollJson.class){
+	  return builder.create().fromJson(jsonString, ScrollJson.class);
+	  } else {
+	  System.out.println("getSimpleJsonFromString: Null");
+	  return null;
+	  }*/
+	return (SimpleJson) getJsonFromString(jsonString, type);
+    }
+
+    public void getJsonFromString(String jsonString){
+	GsonBuilder builder = new GsonBuilder();
+	picJsn = builder.create().fromJson(jsonString, TagJson.class);
+	ScrollJson buf = builder.create().fromJson(jsonString, ScrollJson.class);
+	for(SimpleNode node : picJsn.getSimpleNodes()){
+	    System.out.println("id: "+node.getId());
+	    System.out.println("Caption:\n"+Arrays.toString(node.getHashtags().toArray())+"\n");
+	    System.out.println("Shortcode: "+node.getShortcode());
+	}
+    }
+
+    public void getJson(String html){
+	getJsonFromString(getJsonString(html));
+    }
+
+    public void testJson(){
+	try{
+	    String buf = GetPageContent("https://www.instagram.com/graphql/query/?query_id=17875800862117404&variables={\"tag_name\":\"wood\",\"first\":3,\"after\":\""+picJsn.getCursor()+"\"}");
+	    tofile(buf, "query1.json");
+	    //getJsonFromString(buf, ScrollJson.class);
+	    /*GsonBuilder builder = new GsonBuilder();
+	    //Object o = builder.create().fromJson(jsonString, Object.class);
+	    ScrollJson bufJsn = builder.create().fromJson(buf, ScrollJson.class);
+	    bufJsn.printStatus();
+	    //picJsn.checkStuff();
+	    System.out.println("===> ScrollJson: ");*/
+	    getJsonFromString(buf, ScrollJson.class);
+	    for(SimpleNode node : getSimpleJsonFromString(buf, ScrollJson.class).getSimpleNodes()){
+		System.out.println("id: "+node.getId());
+		System.out.println("Caption:\n"+Arrays.toString(node.getHashtags().toArray())+"\n");
+		System.out.println("Shortcode: "+node.getShortcode());
+	    }
+	} catch (Exception e){
+	    e.printStackTrace();
+	}
+    }
+
+
 
     public String sendPost(String url, String postParams, String Ref) throws Exception {
-	boolean redirect = false;
 
-	System.out.println("begin of post");
+	printToConsole("begin of post");
 	URL obj = new URL(url);
 	conn = (HttpURLConnection) obj.openConnection();
-	System.out.println("after conn");
+	printToConsole("after conn");
 
 	int responseCode;
-	//postParams = URLEncoder.encode(postParams, "UTF-8");
-	//byte[] params = postParams.getBytes( StandardCharsets.UTF_8 );
 
-	/*int responseCode = conn.getResponseCode();
-
-	  if (responseCode != HttpURLConnection.HTTP_OK) {
-	  if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HttpURLConnection.HTTP_MOVED_PERM)
-	  redirect = true;
-	  }*/
-
-	if(redirect){
-
-	    System.out.println("\n #### redirected #### \n");
-	    // get redirect url from "location" header field
-	    String newUrl = conn.getHeaderField("Location");
-
-	    // get the cookie if need, for login
-	    //String cookies = conn.getHeaderField("Set-Cookie");
-
-	    // open the new connnection again
-	    conn = (HttpURLConnection) new URL(newUrl).openConnection();
-
-	}
-	System.out.println("bevor act like browser");
+	printToConsole("bevor act like browser");
 
 	// Acts like a browser
-
 	conn.setUseCaches(false);
 	conn.setRequestMethod("POST");
 	conn.setRequestProperty("Host", "www.instagram.com");
@@ -115,16 +219,9 @@ class PageHandler{
 	conn.setRequestProperty("X-Instagram-AJAX", "1");
 	conn.setRequestProperty("X-Requested-Width", "XMLHttpRequest");
 
-	/*if(this.cookies!=null){
-	  for (String cookie : this.cookies) {
-	  conn.addRequestProperty("Cookie", cookie.split(";", 1)[0]);
-	  System.out.println(cookie.split(";", 1)[0]);
-	  }
-	  }*/
-	StringJoiner joiner = new StringJoiner(";");
+	StringJoiner joiner = new StringJoiner(";");// While joining, use ',' or ';' Most of the servers are using ';'
 	String token = "";
 	if (msCookieManager.getCookieStore().getCookies().size() > 0) {
-	    // While joining the Cookies, use ',' or ';' as needed. Most of the servers are using ';'
 	    for (HttpCookie cookie : msCookieManager.getCookieStore().getCookies() ){
 		joiner.add(cookie.toString());
 		if(cookie.toString().split("=")[0].equals("csrftoken")){
@@ -142,36 +239,32 @@ class PageHandler{
 	conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 	conn.setRequestProperty("Content-Length", Integer.toString(postParams.length()));
 
-	System.out.println("befor dooutput");
 	conn.setDoOutput(true);
-	//System.out.println("befor doinput");
 	conn.setDoInput(true);
 
+	// Print set RequestProperties
 	Map<String, List<String>> map = conn.getRequestProperties();
 	for (Map.Entry<String, List<String>> entry : map.entrySet()) {
 	    System.out.println(entry.getKey() + " : "+ entry.getValue());
 	}
-	System.out.println(conn.getRequestProperty("Host"));
 
 	// Send post request
-	System.out.println("befor dataoutputstream");
+	printToConsole("befor dataoutputstream");
 	DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
 	if(postParams!=null){
-		wr.writeBytes(postParams);
+	    wr.writeBytes(postParams);
 	}
 	wr.flush();
 	wr.close();
-	System.out.println("after dadaouputstream");
 
 	responseCode = conn.getResponseCode();
 
-	System.out.println("\nSending 'POST' request to URL : " + url);
-	System.out.println("Post parameters : " + postParams);
-	System.out.println("Response Code : " + responseCode);
+	printToConsole("\nSending 'POST' request to URL : " + url);
+	printToConsole("Post parameters : " + postParams);
+	printToConsole("Response Code : " + responseCode);
 
-	System.out.println("befor getInputstream");
+	// getting page content
 	BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-	System.out.println("after getInputstream");
 	String inputLine;
 	StringBuffer response = new StringBuffer();
 
@@ -181,23 +274,19 @@ class PageHandler{
 
 	in.close();
 
+	// fetching response cookies
 	Map<String, List<String>> headerFields = conn.getHeaderFields();
 	List<String> cookiesHeader = headerFields.get(COOKIES_HEADER);
 
 	if (cookiesHeader != null) {
 	    System.out.println("in fill cookies of post");
-	    msCookieManager.getCookieStore().removeAll();
 	    for (String cookie : cookiesHeader) {
 		msCookieManager.getCookieStore().add(null,HttpCookie.parse(cookie).get(0));
 		System.out.println("---   cookie: "+ cookie);
 	    }
 	}
 
-	Thread.sleep(5*1000);
-	System.out.println("end of post");
-	//String bufPage = GetPageContent(url);
-	//System.out.println(bufPage);
-	tofile(response.toString());
+	tofile(response.toString(), "post-respone.html");
 	return response.toString();
 
     }
@@ -207,32 +296,18 @@ class PageHandler{
     }
 
     public void tofile(String content, String fileName){
-	FileWriter fileWriter = null;
-	try {
-	    File newTextFile = new File("/home/giovanni/Desktop/"+fileName);
-	    //BufferedWriter writer =  new BufferedWriter(fWriter);
-	    fileWriter = new FileWriter(newTextFile);
-	    BufferedWriter writer;// =  new BufferedWriter(fileWriter);
-	    //fileWriter.write(content);
-	    //fileWriter.close();
-	    writer = new BufferedWriter(fileWriter);
+	try(FileWriter fileWriter = new FileWriter( new File("/home/giovanni/Desktop/"+fileName) );
+		BufferedWriter writer = new BufferedWriter(fileWriter)
+	   ) {
 	    writer.write(content);
 	    writer.newLine(); //this is not actually needed for html files - can make your code more readable though 
-	    writer.close();
 	} catch (IOException ex) {
-	    //Logger.getLogger(WriteStringToFile.class.getName()).log(Level.SEVERE, null, ex);
-	} finally {
-	    try {
-		fileWriter.close();
-	    } catch (IOException ex) {
-		//Logger.getLogger(WriteStringToFile.class.getName()).log(Level.SEVERE, null, ex);
-	    }
+	    ex.printStackTrace();
 	}
     }
 
     public String GetPageContent(String url) throws Exception {
-	System.out.println("GetPageContent: "+url);
-	boolean redirect = false;
+	System.out.println("\nGetPageContent: "+url);
 
 	URL obj = new URL(url);
 	conn = (HttpURLConnection) obj.openConnection();
@@ -244,19 +319,12 @@ class PageHandler{
 	conn.setRequestProperty("User-Agent", USER_AGENT);
 	conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 	conn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-	conn.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
+	//conn.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
 	conn.setRequestProperty("Upgrade-Insecure-Requests","1");
 
-	/*if (cookies != null) {
-	  for (String cookie : this.cookies) {
-	  conn.addRequestProperty("Cookie", cookie.split(";", 1)[0]);
-	  }
-	  }*/
-
-	StringJoiner joiner = new StringJoiner(";");
+	StringJoiner joiner = new StringJoiner(";");// While joining, use ',' or ';' Most of the servers are using ';'
 	String token = "";
 	if (msCookieManager.getCookieStore().getCookies().size() > 0) {
-	    // While joining the Cookies, use ',' or ';' as needed. Most of the servers are using ';'
 	    for (HttpCookie cookie : msCookieManager.getCookieStore().getCookies() ){
 		joiner.add(cookie.toString());
 		if(cookie.toString().split("=")[0].equals("csrftoken")){
@@ -268,50 +336,20 @@ class PageHandler{
 	    conn.setRequestProperty("Cookie",joiner.toString());
 	}
 
+	// print requestProperties
 	Map<String, List<String>> map = conn.getRequestProperties();
 	for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-	    System.out.println(entry.getKey() + " : "+ entry.getValue());
+	    printToConsole(entry.getKey() + " : "+ entry.getValue());
 	}
-	System.out.println(conn.getRequestProperty("Host"));
+	printToConsole(conn.getRequestProperty("Host"));
 
+	// checking responseCode
 	int responseCode = conn.getResponseCode();
-	System.out.println("In GetPageContent after respond code");
-	System.out.println("\nSending 'GET' request to URL : " + url);
-	System.out.println("Response Code : " + responseCode);
+	printToConsole("In GetPageContent after respond code");
+	printToConsole("\nSending 'GET' request to URL : " + url);
+	printToConsole("Response Code : " + responseCode);
 
-	if (responseCode != HttpURLConnection.HTTP_OK) {
-	    if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HttpURLConnection.HTTP_MOVED_PERM)
-		redirect = true;
-	}
-
-	if(redirect){
-
-	    System.out.println("\n #### redirected #### \n");
-	    // get redirect url from "location" header field
-	    String newUrl = conn.getHeaderField("Location");
-
-	    // get the cookie if need, for login
-	    String cookies = conn.getHeaderField("Set-Cookie");
-
-	    // open the new connnection again
-	    conn = (HttpURLConnection) new URL(newUrl).openConnection();
-
-	    conn.setRequestMethod("GET");
-	    conn.setUseCaches(false);
-
-	    // act like a browser
-	    conn.setRequestProperty("Cookie", cookies);
-	    conn.setRequestProperty("User-Agent", USER_AGENT);
-	    conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-	    conn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-	}
-
-	/*Map<String, List<String>> map = conn.getHeaderFields();
-	  for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-	  System.out.println("Key : " + entry.getKey() +
-	  " ,Value : " + entry.getValue());
-	  }*/
-
+	// getting page content
 	BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 	String inputLine;
 	StringBuffer response = new StringBuffer();
@@ -322,281 +360,20 @@ class PageHandler{
 	in.close();
 
 	// Get the response cookies
-	//setCookies(conn.getHeaderFields().get("Set-Cookie"));
 	Map<String, List<String>> headerFields = conn.getHeaderFields();
 	List<String> cookiesHeader = headerFields.get(COOKIES_HEADER);
-
 	if (cookiesHeader != null) {
-	    msCookieManager.getCookieStore().removeAll();
-	    System.out.println("in fill cookies of get");
+	    printToConsole("in fill cookies of get");
 	    for (String cookie : cookiesHeader) {
 		msCookieManager.getCookieStore().add(null,HttpCookie.parse(cookie).get(0));
-		System.out.println("---   cookie: "+ cookie);
+		printToConsole("---   cookie: "+ cookie);
 	    }               
 	}
-
 
 	return response.toString();
 
     }
 
-    public String stripMp4Link(String html){
-
-	Document doc = Jsoup.parse(html);
-	Elements scriptElements = doc.getElementsByTag("script");
-	//System.out.println("scripts : "+scriptElements.size());
-	String[] lines;
-	for(Element el : scriptElements){
-
-	    lines = el.html().split("\t");
-	    //System.out.println(lines.length);
-
-	    for(String line : lines){
-
-		if(line.contains("file:")){
-		    String[] buf = line.split("\"");
-		    if(buf.length >= 3){
-			return buf[1];
-		    }	
-		}
-	    }
-	}
-	System.out.println("last return");
-	return "";
-    }
-
-    public String getMp4Link(String link){ //argument is serienstrem.to link to desired video
-	System.out.println("String getMp4Link(String link)");
-	try{
-	    String streamcloudLink = "https://serienstream.to"+getStreamcloudLink(GetPageContent(link)); //get link to streamcloud
-
-	    String params = getFormParams(GetPageContent(streamcloudLink)); //get post parameters
-
-	    System.out.println("sleeping........");
-	    Thread.sleep(15*1000); // wait for streamcloud countdown
-
-	    return stripMp4Link(sendPost(streamcloudLink, params, "http://streamcloud.eu"));
-	} catch(Exception e) {
-	    return null;
-	}
-    }
-
-    public String getMp4Link(String serie, String season, String episode){ //argument is serienstrem.to link to desired video
-	System.out.println("String getMp4Link(String serie, String season, String episode)");
-	String link = serienstreamLink(serie, season, episode);
-
-	try{
-	    String streamcloudLink = "https://serienstream.to"+getStreamcloudLink(GetPageContent(link)); //get link to streamcloud
-
-	    String params = getFormParams(GetPageContent(streamcloudLink)); //get post parameters
-
-	    System.out.println("sleeping........");
-	    Thread.sleep(15*1000); // wait for streamcloud countdown
-
-	    return stripMp4Link(sendPost(streamcloudLink, params, "http://streamcloud.eu"));
-	} catch(Exception e) {
-	    return null;
-	}
-    }
-
-    public String getFormParams(String html)
-	throws UnsupportedEncodingException {
-	    String username = "treemmetries";
-	    String password = "123ABC";
-
-	    System.out.println("-Extracting form's data...");
-	    //System.out.println(html);
-
-	    Document doc = Jsoup.parse(html);
-
-	    // Google form id
-	    //System.out.println("bevor loginform");
-	    //Element loginform = (doc.getElementsByClass("proform")).first();
-	    //System.out.println("loginform.text(): "+loginform.text());
-	    Elements inputElements = doc.getElementsByTag("input");//loginform.getElementsByTag("input");
-	    List<String> paramList = new ArrayList<String>();
-
-	    for (Element inputElement : inputElements) {
-		String key = inputElement.attr("name");
-		String value = inputElement.attr("value");
-
-		if (key.equals("username")) value = username;
-		else if (key.equals("password")) value = password;
-
-		paramList.add(key + "=" + URLEncoder.encode(value, "UTF-8"));
-	    }
-
-	    // build parameters list
-	    StringBuilder result = new StringBuilder();
-	    for (String param : paramList) {
-		if (result.length() == 0) {
-		    result.append(param);
-		} else {
-		    result.append("&" + param);
-		}
-	    }
-	    System.out.print("Result    :    "+result.toString());
-	    return result.toString();
-	}
-
-    public String getStreamcloudLink(String html) throws UnsupportedEncodingException {
-
-	System.out.println("getting links...");
-
-	Document doc = Jsoup.parse(html);
-	System.out.println("after parse");
-	// Google form id
-
-	Elements links = doc.getElementsByTag("a");
-	for (Element link : links) {
-
-	    //System.out.println("bevor if, href = "+link.text());
-
-	    if(!link.getElementsByClass("Streamcloud").isEmpty()){
-		String linkHref = link.attr("href");
-		//System.out.println("in if, href = "+linkHref);
-		return linkHref;
-	    }
-	}
-
-
-	return "";
-    }
-
-    public void getStreamcloudMp4(){
-	try{
-	    Connection.Response loginForm = Jsoup.connect("http://streamcloud.eu/r5xmndo62sym/.html")
-		.method(Connection.Method.GET)
-		.execute();
-
-	    Document document = Jsoup.connect("http://streamcloud.eu/r5xmndo62sym/.html")
-		.data("cookieexists", "false")
-		//.data("username", "32007702")
-		.data("imhuman", "Watch video now")
-		.cookies(loginForm.cookies())
-		.post();
-	    System.out.println(document);
-	} catch(Exception exc){
-	    System.out.println(exc.getMessage());
-	}    
-    }
-
-    public  String serienstreamLink(String serie, String season, String episode){
-
-	return "https://serienstream.to/serie/stream/"+serie+"/staffel-"+season+"/episode-"+episode;
-
-    }
-
-    public ArrayList<String> getStreamSeasons(String html) throws UnsupportedEncodingException {
-
-	ArrayList<String>  seasons = new ArrayList<String>();
-
-	System.out.println("getting seasons...");
-
-	Document doc = Jsoup.parse(html);
-	System.out.println("after parse");
-
-	Element streamSection = doc.getElementById("stream");
-	Elements links = streamSection.getElementsByTag("a");
-
-	String[] buf;
-
-	for (Element link : links) {
-
-	    buf = link.attr("title").split(" ");
-	    //System.out.println("#"+buf[0]+"#");
-
-	    if(buf.length >= 2 && buf.length <= 2){
-		//System.out.println("in first if");
-		if(buf[0].equals("Staffel")){
-		    //System.out.println(buf[0]+" "+buf[1]);
-		    seasons.add(buf[1]);
-		}
-
-	    }
-	}
-	return seasons;
-
-    }
-
-
-    public ArrayList<String> getStreamEpisodes(String html) throws UnsupportedEncodingException {
-
-	ArrayList<String>  episodes = new ArrayList<String>();
-
-	System.out.println("geting episodes...");
-
-	Document doc = Jsoup.parse(html);
-	System.out.println("after parse");
-
-	Element streamSection = doc.getElementById("stream");
-	Elements links = streamSection.getElementsByTag("a");
-
-	String[] buf;
-
-	for (Element link : links) {
-
-	    buf = link.attr("title").split(" ");
-	    //System.out.println(buf[0]);
-
-	    if(buf.length >=4 ){
-		//System.out.println(buf[2]);
-
-		if(buf[2].equals("Episode")){
-		    //System.out.println(buf[2]+" "+buf[3]);
-		    episodes.add(buf[3]);
-		}
-
-	    }
-	}
-
-	return episodes;
-    }
-
-
-    public void setCookies(List<String> cookies) {
-	this.cookies = cookies;
-    }
-
-    public class logger{
-
-	private String EPISODE;
-	private String SEASON;
-
-	public logger(String season, String episode){
-	    EPISODE = episode;
-	    SEASON = season;
-	}
-
-	public String getEpisode(){
-	    return EPISODE;
-	}
-
-	public String getSeason(){
-	    return SEASON;
-	}
-
-	public String inkrementEpisode(){
-	    EPISODE = Integer.toString(Integer.parseInt(EPISODE) + 1);
-	    return EPISODE;
-	}
-
-	public String dekrementEpisode(){
-	    EPISODE = Integer.toString(Integer.parseInt(EPISODE) - 1);
-	    return EPISODE;
-	}
-
-	public String inkrementSeason(){
-	    SEASON = Integer.toString(Integer.parseInt(SEASON) + 1);
-	    return SEASON;
-	}
-
-	public String dekrementSeason(){
-	    SEASON = Integer.toString(Integer.parseInt(SEASON) - 1);
-	    return SEASON;
-	}
-
-    }
 
 }
 
