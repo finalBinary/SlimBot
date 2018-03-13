@@ -1,0 +1,23 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+mainClassName = 'BotClient'
+
+repositories {
+   mavenCentral()
+}
+
+dependencies {
+    compile 'org.jsoup:jsoup:1.11.2',
+            'mysql:mysql-connector-java:5.1.13'
+}
+
+jar {
+  manifest {
+    attributes(
+      'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+      'Main-Class': 'BotClient'
+    )
+  }
+  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
