@@ -1,4 +1,5 @@
 Manifest-Version: 1.0
-Class-Path: jsoup-1.11.2.jar mysql-connector-java-5.1.13.jar
+Class-Path: jsoup-1.11.2.jar mysql-connector-java-5.1.13.jar gson-2.8.
+ 2.jar
 Main-Class: BotClient
 

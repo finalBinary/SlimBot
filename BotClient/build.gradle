@@ -9,7 +9,8 @@ repositories {
 
 dependencies {
     compile 'org.jsoup:jsoup:1.11.2',
-            'mysql:mysql-connector-java:5.1.13'
+            'mysql:mysql-connector-java:5.1.13',
+            'com.google.code.gson:gson:2.8.2'
 }
 
 jar {

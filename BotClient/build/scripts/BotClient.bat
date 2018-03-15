@@ -63,7 +63,7 @@ set CMD_LINE_ARGS=%*
 :execute
 @rem Setup the command line
 
-set CLASSPATH=%APP_HOME%\lib\BotClient.jar;%APP_HOME%\lib\jsoup-1.11.2.jar;%APP_HOME%\lib\mysql-connector-java-5.1.13.jar
+set CLASSPATH=%APP_HOME%\lib\BotClient.jar;%APP_HOME%\lib\jsoup-1.11.2.jar;%APP_HOME%\lib\mysql-connector-java-5.1.13.jar;%APP_HOME%\lib\gson-2.8.2.jar
 
 @rem Execute BotClient
 "%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %BOT_CLIENT_OPTS%  -classpath "%CLASSPATH%" BotClient %CMD_LINE_ARGS%
