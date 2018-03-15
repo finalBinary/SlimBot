@@ -58,7 +58,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import java.net.InetSocketAddress;
 
-public class testBot2 {
+public class testBot {
 
 
 	public static void main(String[] args){
