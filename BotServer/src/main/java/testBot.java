@@ -43,6 +43,10 @@ import java.util.List;
 import java.util.HashMap;
 import java.io.BufferedWriter;
 
+import java.lang.Runtime;
+import java.lang.Process;
+import java.lang.ProcessBuilder;
+import java.lang.ProcessBuilder.Redirect;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.internal.LinkedTreeMap;
@@ -54,7 +58,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import java.net.InetSocketAddress;
 
-public class testBot {
+public class testBot2 {
 
 
 	public static void main(String[] args){
@@ -73,16 +77,22 @@ public class testBot {
 class BotServer{
 	HttpServer server;
 	private final String response = "\nOk";
-	private Map<String, Thread> startedThreads;;
+	private Map<String, Thread> startedThreads;
+	private Map<String, Thread> addedThreads;
+	private Map<String, Process> startedProcesses;
 
 	BotServer(){
 		startedThreads = new HashMap<String, Thread>();
+		addedThreads = new HashMap<String, Thread>();
+		startedProcesses = new HashMap<String, Process>();
 		try{
-			server = HttpServer.create(new InetSocketAddress(8001), 0);
+			server = HttpServer.create(new InetSocketAddress(8000), 0);
 			server.createContext("/add", new addBotHandler());
+			server.createContext("/runtime", new getRuntimeHandler());
 			server.createContext("/stopserver", new stopServerHandler());
+			server.createContext("/start2", new startBotHandler2());
 			server.setExecutor(null); // creates a default executor
-			System.out.println("\n#####################\n# BotServer Started #\n#####################\n");
+			//System.out.println("\n#####################\n# BotServer Started #\n#####################\n");
 		} catch(Exception e){
 			e.printStackTrace();
 		}
@@ -95,6 +105,7 @@ class BotServer{
 
 	public void start(){
 		server.start();
+		System.out.println("\n####################\n# BotServer Started #\n###################\n");
 	}
 
 	public void stop(){
@@ -104,6 +115,7 @@ class BotServer{
 	public void addContext(Thread thread){
 		try{
 			server.createContext("/start/"+thread.getName(), new startBotHandler(thread));
+			addedThreads.put(thread.getName(), thread);
 			System.out.println("\n==> Bot: "+thread.getName()+" added to context\n");
 		} catch (Exception e){
 			e.printStackTrace();
@@ -116,6 +128,8 @@ class BotServer{
 		for (Thread thread : threads){
 			try{
 				server.createContext("/start/"+thread.getName(), new startBotHandler(thread));
+				addedThreads.put(thread.getName(), thread);
+				System.out.println("\n==> Bot: "+thread.getName()+" added to context\n");
 			} catch (Exception e){
 				e.printStackTrace();
 			}
@@ -147,7 +161,7 @@ class BotServer{
 		public void handle(HttpExchange t) throws IOException {
 
 			Map<String, String> attributes = queryToMap(t.getRequestURI().getQuery());
-			InstaBot bot = new InstaBot(attributes.get("username"), attributes.get("password"), Arrays.asList(attributes.get("tags").split("\\s*,\\s*")));
+			InstaBot bot = new InstaBot(attributes.get("username"), attributes.get("password"), Arrays.asList(attributes.get("tags").split("\\s*,\\s*")), attributes.get("port"));
 			addContext(bot);
 
 			String resp = "Ok";
@@ -159,8 +173,53 @@ class BotServer{
 		}
 	}
 
+	class startBotHandler2 implements HttpHandler {
+
+		public void handle(HttpExchange t) throws IOException {
+			Map<String, String> attributes = queryToMap(t.getRequestURI().getQuery());
+			String command = "java -cp .:/home/pi/Java/Jars/gson-2.6.2.jar RunBot "+attributes.get("username")+" "+attributes.get("password")+" "+attributes.get("tags")+" "+attributes.get("port");
+
+			List<String> commandList = new ArrayList<String>();
+			commandList.add("java");
+			commandList.add("-cp");
+			commandList.add(".:/home/pi/Java/Jars/gson-2.6.2.jar");
+			commandList.add("RunBot");
+			commandList.add(attributes.get("username"));
+			commandList.add(attributes.get("password"));
+			commandList.add(attributes.get("tags"));
+			commandList.add(attributes.get("port"));
+
+			System.out.println(command);
+
+			if(startedProcesses.containsKey(attributes.get("username"))){
+				System.out.println("Bot already started. Derstroing and restarting bot process");
+				startedProcesses.get(attributes.get("username")).destroy();
+				startedProcesses.remove(attributes.get("username"));
+			}
+
+			System.out.println("befor pb");
+			ProcessBuilder pb = new ProcessBuilder(commandList);
+			//pb.redirectOutput(Redirect.INHERIT);
+			//pb.redirectError(Redirect.INHERIT);
+			pb.inheritIO();
+			Process process = pb.start();
+
+			System.out.println("### after pb.start");
+
+			startedProcesses.put(attributes.get("username"), process);	
+			String resp = "Ok";
+			t.sendResponseHeaders(200, resp.length());
+                        OutputStream os = t.getResponseBody();
+                        os.write(resp.getBytes());
+                        os.close();
+
+		}
+
+	}
+
 	class startBotHandler implements HttpHandler {
 		private Thread thread;
+		private Thread bufThread;
 
 		startBotHandler(Thread thread){
 			this.thread = thread;
@@ -170,10 +229,10 @@ class BotServer{
 			System.out.println("in startBotHandler");
 			String resp = "\nBot is alrady running";
 			if(!threadIsRunning(thread.getName())){
-				thread = new InstaBot((InstaBot) thread);
-				thread.start();
+				bufThread = new InstaBot((InstaBot) thread);
+				bufThread.start();
 
-                                startedThreads.put(thread.getName(), thread);
+                                startedThreads.put(bufThread.getName(), bufThread);
 
 				resp = "\nStarted Bot";
 			}
@@ -181,7 +240,20 @@ class BotServer{
 			OutputStream os = t.getResponseBody();
 			os.write(resp.getBytes());
 			os.close();
-			System.out.println("###########\nBot start request!\n##########");
+			System.out.println("###########\nBot "+thread.getName()+" start request!\n##########");
+		}
+	}
+
+	class getRuntimeHandler implements HttpHandler {
+		public void handle(HttpExchange t) throws IOException {
+			Map<String, String> attributes = queryToMap(t.getRequestURI().getQuery());
+
+			int buf = ( (InstaBot) addedThreads.get(attributes.get("name")) ).getRunTime();
+			String resp = Integer.toString(buf);
+			t.sendResponseHeaders(200, resp.length());
+                        OutputStream os = t.getResponseBody();
+                        os.write(resp.getBytes());
+                        os.close();
 		}
 	}
 
