@@ -1,6 +1,7 @@
 package WebPageHandler;
 
 import WebPageHandler.InstaJsonManager.*;
+import MyUtilities.PrintToConsole;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -45,31 +46,25 @@ import java.lang.reflect.Type;
 
 public class PageHandler{
 
-    private boolean _silent = true;
-
     private HttpURLConnection conn;
     static final String COOKIES_HEADER = "Set-Cookie";
     private final String USER_AGENT = "Mozilla/5.0";
     static java.net.CookieManager msCookieManager = new java.net.CookieManager();
 
-    protected void printToConsole(String msg){
-	if(!_silent) System.out.println(msg);
-    }
-
     public void silent(boolean state){
-	_silent = state;
+	PrintToConsole.setSilent(state);
     }
 
     public String sendPost(String url, String postParams, String Ref) throws Exception {
 
-	printToConsole("begin of post");
+	PrintToConsole.print("begin of post");
 	URL obj = new URL(url);
 	conn = (HttpURLConnection) obj.openConnection();
-	printToConsole("after conn");
+	PrintToConsole.print("after conn");
 
 	int responseCode;
 
-	printToConsole("--bevor act like browser");
+	PrintToConsole.print("--bevor act like browser");
 
 	// Acts like a browser
 	conn.setUseCaches(false);
@@ -109,11 +104,11 @@ public class PageHandler{
 	// Print set RequestProperties
 	Map<String, List<String>> map = conn.getRequestProperties();
 	for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-	    printToConsole(entry.getKey() + " : "+ entry.getValue());
+	    PrintToConsole.print(entry.getKey() + " : "+ entry.getValue());
 	}
 
 	// Send post request
-	printToConsole("befor dataoutputstream");
+	PrintToConsole.print("befor dataoutputstream");
 	DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
 	if(postParams!=null){
 	    wr.writeBytes(postParams);
@@ -123,9 +118,9 @@ public class PageHandler{
 
 	responseCode = conn.getResponseCode();
 
-	printToConsole("\nSending 'POST' request to URL : " + url);
-	printToConsole("Post parameters : " + postParams);
-	printToConsole("Response Code : " + responseCode);
+	PrintToConsole.print("\nSending 'POST' request to URL : " + url);
+	PrintToConsole.print("Post parameters : " + postParams);
+	PrintToConsole.print("Response Code : " + responseCode);
 
 	// getting page content
 	BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -143,14 +138,14 @@ public class PageHandler{
 	List<String> cookiesHeader = headerFields.get(COOKIES_HEADER);
 
 	if (cookiesHeader != null) {
-	    printToConsole("in fill cookies of post");
+	    PrintToConsole.print("in fill cookies of post");
 	    for (String cookie : cookiesHeader) {
 		msCookieManager.getCookieStore().add(null,HttpCookie.parse(cookie).get(0));
-		printToConsole("---   cookie: "+ cookie);
+		PrintToConsole.print("---   cookie: "+ cookie);
 	    }
 	}
 
-	tofile(response.toString(), "post-respone.html");
+	//tofile(response.toString(), "post-respone.html");
 	return response.toString();
 
     }
@@ -171,7 +166,7 @@ public class PageHandler{
     }
 
     public String GetPageContent(String url) throws Exception {
-	printToConsole("\nGetPageContent: "+url);
+	PrintToConsole.print("\nGetPageContent: "+url);
 
 	URL obj = new URL(url);
 	conn = (HttpURLConnection) obj.openConnection();
@@ -203,15 +198,15 @@ public class PageHandler{
 	// print requestProperties
 	Map<String, List<String>> map = conn.getRequestProperties();
 	for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-	    printToConsole(entry.getKey() + " : "+ entry.getValue());
+	    PrintToConsole.print(entry.getKey() + " : "+ entry.getValue());
 	}
-	printToConsole(conn.getRequestProperty("Host"));
+	PrintToConsole.print(conn.getRequestProperty("Host"));
 
 	// checking responseCode
 	int responseCode = conn.getResponseCode();
-	printToConsole("In GetPageContent after respond code");
-	printToConsole("\nSending 'GET' request to URL : " + url);
-	printToConsole("Response Code : " + responseCode);
+	PrintToConsole.print("In GetPageContent after respond code");
+	PrintToConsole.print("\nSending 'GET' request to URL : " + url);
+	PrintToConsole.print("Response Code : " + responseCode);
 
 	// getting page content
 	BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -227,10 +222,10 @@ public class PageHandler{
 	Map<String, List<String>> headerFields = conn.getHeaderFields();
 	List<String> cookiesHeader = headerFields.get(COOKIES_HEADER);
 	if (cookiesHeader != null) {
-	    printToConsole("in fill cookies of get");
+	    PrintToConsole.print("in fill cookies of get");
 	    for (String cookie : cookiesHeader) {
 		msCookieManager.getCookieStore().add(null,HttpCookie.parse(cookie).get(0));
-		printToConsole("---   cookie: "+ cookie);
+		PrintToConsole.print("---   cookie: "+ cookie);
 	    }               
 	}
 

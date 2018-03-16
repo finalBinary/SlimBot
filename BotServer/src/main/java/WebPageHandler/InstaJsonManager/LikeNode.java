@@ -1,5 +1,7 @@
 package WebPageHandler.InstaJsonManager;
 
+import WebPageHandler.InstaJsonManager.InstaGraphQL.*;
+
 class LikeNode {
     String id;
     String profile_pic_url;

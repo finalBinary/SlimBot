@@ -2,6 +2,7 @@ package Bot;
 
 import WebPageHandler.*;
 import WebPageHandler.InstaJsonManager.*;
+import WebPageHandler.InstaJsonManager.InstaGraphQL.*;
 import MyUtilities.*;
 import RandomTools.*;
 import TimeUtil.*;
@@ -28,10 +29,11 @@ public class InstaBot extends Thread{
 	private AtomicBoolean statFlag = new AtomicBoolean(false);
 	private AtomicBoolean runningFlag = new AtomicBoolean(false);
 
+	private String port;
 	private boolean unfollow = true;
 	private int lowerUnfollowNr = 0;
 	private int upperUnfollowNr = 1;
-	private int runTime = (int) (60 * 1 );
+	private int runTime = (int) (60 * 60 * 2 );
 	private boolean infRun = false;
 	private final String username;
 	private final String password;
@@ -50,28 +52,40 @@ public class InstaBot extends Thread{
 	BotStats stats;
 
 
-	public InstaBot(String user, String pass, List<String> tags){
+	public InstaBot(String user, String pass, List<String> tags, String prt){
 
 		username = user;
 		password = pass;
 		tagList = tags;
+		port = prt;
+		PrintToConsole.print("Port: "+port);
+		Integer.parseInt(port);
+		PrintToConsole.print("after parseInt");
 		this.setName(username);
 
-		instaHandler = new InstaHandler();
+		//instaHandler = new InstaHandler();
 		randomTagBuffer = new RandomRingBuffer<String>(tags);
 		randomDecision = new RandomDecision(100);
 		timeManager = new TimeManager();
 		stats = new BotStats();
 
-		instaHandler.initialize(username);
+		//instaHandler.initialize(username);
+		runTime = (int) (runTime*(0.9 + (randomDecision.randInt(100)/1000) ));
 	}
 
 	public InstaBot(InstaBot bot){
-		this(bot.getUsername(), bot.getPassword(), bot.getTagList());
+		this(bot.getUsername(), bot.getPassword(), bot.getTagList(), bot.getPort());
+	}
+
+	private void  init(){
+		instaHandler = new InstaHandler();
+		instaHandler.silent(false);
+		instaHandler.initialize(username);
 	}
 
 	@Override
 		public void run(){
+			init();
 			runningFlag.set(true);
 
 			instaHandler.login(username, password);
@@ -88,20 +102,23 @@ public class InstaBot extends Thread{
 				stats.setUnfollowedInSession(unfollowed);
 			}
 
+			randomDecision.randomWait(1000, 2000);
+
 			while(infRun || (timeManager.checkTime(runTime) && !(followed >= maxFollow && liked >= maxLike) && !stopFlag.get())){
 
-				while(pauseFlag.get()){System.out.println("pause while");};
+				while(pauseFlag.get()){PrintToConsole.print("pause while");};
 
 				InstaHandler.TagSearchHandler tagHandler = instaHandler.new TagSearchHandler(randomTagBuffer.next());
-				System.out.println("1st while");
+				PrintToConsole.print("1st while");
+
 				while( (currentNode = tagHandler.nextNewPic() ) != null && timeManager.checkTime(runTime) && followed <= maxFollow && liked <= maxLike && !stopFlag.get()){
 
-					while(pauseFlag.get()){System.out.println("pause while");};
-					System.out.println("2nd while");
+					while(pauseFlag.get()){PrintToConsole.print("pause while");};
+					PrintToConsole.print("2nd while");
 
 					System.out.println("-----------> next new pic");
 
-					randomDecision.randomWait(300, 2000);
+					randomDecision.randomWait(500, 2000);
 
 					if(currentNode.containsHashtag(tagList) && randomDecision.rand(30)){
 
@@ -123,12 +140,21 @@ public class InstaBot extends Thread{
 			stats.setFollowing(Integer.parseInt(instaHandler.getFollowingCount(username)));
 
 			instaHandler.logout(username);
+
+			if(timeManager.checkTime(runTime)){//wait untill runtime has passed
+				PrintToConsole.print("Entering while(checktime)");
+				while(timeManager.checkTime(runTime));
+				PrintToConsole.print("Leaving while(checktime)");
+			}
 			waitForStatsRequest(300);//wait 5min for stat request
 			inputServer.stop();
 			runningFlag.set(false);
-			System.out.println("out ===> ");
+			PrintToConsole.print("out ===> ");
 		}
 
+		public String getPort(){
+			return port;
+		}
 	
 		public void stopBot(){
 			setStop(true);
@@ -163,7 +189,7 @@ public class InstaBot extends Thread{
 		}
 
 		public boolean botIsRunning(){
-			System.out.println("in botIsRunning");
+			PrintToConsole.print("in botIsRunning");
 			return runningFlag.get();
 		}
 
@@ -220,7 +246,7 @@ public class InstaBot extends Thread{
 
 		private void waitForStatsRequest(int time){
 			TimeManager timeMan = new TimeManager();
-			System.out.println("waiting for stats request; time = "+ timeMan.checkTime(time)+"statFlag = "+ getStat());
+			PrintToConsole.print(getUsername()+" waiting for stats request; time = "+ timeMan.checkTime(time)+"statFlag = "+ getStat());
 			
 			while(!getStat() && timeMan.checkTime(time) && !stopFlag.get());
 			setStat(false);
@@ -236,11 +262,12 @@ class InputServer{
 	InputServer(InstaBot bot){
 		try{
 			this.bot = bot;
-			server = HttpServer.create(new InetSocketAddress(8000), 0);
+			server = HttpServer.create(new InetSocketAddress(Integer.parseInt(bot.getPort())), 0);
 			server.createContext("/stop", new stopHandler());
 			server.createContext("/pause", new pauseHandler());
 			server.createContext("/stats", new statResponse());
 			server.createContext("/endstats", new endStatResponse());
+			server.createContext("/connection", new connectionHandler());
 			server.setExecutor(null); // creates a default executor
 		} catch(Exception e){
 			e.printStackTrace();
@@ -255,6 +282,17 @@ class InputServer{
 		server.stop(1);
 	}
 
+	class connectionHandler implements HttpHandler {
+
+		public void handle(HttpExchange t) throws IOException {
+			t.sendResponseHeaders(200, response.length());
+			OutputStream os = t.getResponseBody();
+			os.write(response.getBytes());
+			os.close();
+			System.out.println("###########\n"+bot.getUsername()+" Checked Connection!\n##########");
+		}
+	}
+
 	class stopHandler implements HttpHandler {
 
 		public void handle(HttpExchange t) throws IOException {
@@ -263,20 +301,20 @@ class InputServer{
 			OutputStream os = t.getResponseBody();
 			os.write(response.getBytes());
 			os.close();
-			System.out.println("###########\nSystem Stoped!\n##########");
+			System.out.println("###########\n"+bot.getUsername()+" System Stoped!\n##########");
 		}
 	}
 
 	class pauseHandler implements HttpHandler {
 
 		public void handle(HttpExchange t) throws IOException {
-			System.out.println("in        ###########################");
+			PrintToConsole.print("in        ###########################");
 			if(bot.getPause()){ 
 				bot.setPause(false);
-				System.out.println("###########\nSystem Continued!\n##########");
+				System.out.println("###########\n"+bot.getUsername()+" System Continued!\n##########");
 			} else {
 				bot.setPause(true);
-				System.out.println("###########\nSystem Paused!\n##########");
+				System.out.println("###########\n"+bot.getUsername()+" System Paused!\n##########");
 			}
 			t.sendResponseHeaders(200, response.length());
 			OutputStream os = t.getResponseBody();
@@ -294,7 +332,7 @@ class InputServer{
                         OutputStream os = t.getResponseBody();
                         os.write(json.getBytes());
                         os.close();
-                        System.out.println("###########\nJSON sendt!\n##########");
+                        System.out.println("###########\n"+bot.getUsername()+" JSON sendt!\n##########");
 		}
 
 	}
@@ -309,7 +347,7 @@ class InputServer{
                         os.write(json.getBytes());
                         os.close();
                         bot.setStat(true);
-                        System.out.println("###########\nEnd JSON sendt!\n##########");
+                        System.out.println("###########\n"+bot.getUsername()+" End JSON sendt!\n##########");
                 }
 
         }

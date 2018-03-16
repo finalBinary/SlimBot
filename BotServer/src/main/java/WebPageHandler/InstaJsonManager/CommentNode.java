@@ -1,5 +1,7 @@
 package WebPageHandler.InstaJsonManager;
 
+import WebPageHandler.InstaJsonManager.InstaGraphQL.*;
+
 import java.util.HashMap;
 
 public class CommentNode {

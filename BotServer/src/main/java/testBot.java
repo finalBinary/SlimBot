@@ -82,6 +82,9 @@ class BotServer{
 	private Map<String, Process> startedProcesses;
 
 	BotServer(){
+
+		PrintToConsole.setSilent(true);
+
 		startedThreads = new HashMap<String, Thread>();
 		addedThreads = new HashMap<String, Thread>();
 		startedProcesses = new HashMap<String, Process>();
@@ -90,7 +93,7 @@ class BotServer{
 			server.createContext("/add", new addBotHandler());
 			server.createContext("/runtime", new getRuntimeHandler());
 			server.createContext("/stopserver", new stopServerHandler());
-			server.createContext("/start2", new startBotHandler2());
+			server.createContext("/start2", new startBotHandler3());
 			server.setExecutor(null); // creates a default executor
 			//System.out.println("\n#####################\n# BotServer Started #\n#####################\n");
 		} catch(Exception e){
@@ -173,11 +176,43 @@ class BotServer{
 		}
 	}
 
+	class startBotHandler3 implements HttpHandler {
+		private Thread thread;
+		private Thread bufThread;
+
+		//startBotHandler(Thread thread){
+		//	this.thread = thread;
+		//}
+
+		public void handle(HttpExchange t) throws IOException {
+			System.out.println("in startBotHandler");
+			//PrintToConsole.print("in startBotHandler");
+			String resp = "\nBot is alrady running";
+
+			Map<String, String> attributes = queryToMap(t.getRequestURI().getQuery());
+			thread = new InstaBot(attributes.get("username"), attributes.get("password"), Arrays.asList(attributes.get("tags").split("\\s*,\\s*")), attributes.get("port"));
+
+			if(!threadIsRunning(thread.getName())){
+				bufThread = new InstaBot((InstaBot) thread);
+				bufThread.start();
+
+                                startedThreads.put(bufThread.getName(), bufThread);
+
+				resp = "\nStarted Bot";
+			}
+			t.sendResponseHeaders(200, resp.length());
+			OutputStream os = t.getResponseBody();
+			os.write(resp.getBytes());
+			os.close();
+			System.out.println("###########\nBot "+thread.getName()+" start request!\n##########");
+		}
+	}
+
 	class startBotHandler2 implements HttpHandler {
 
 		public void handle(HttpExchange t) throws IOException {
 			Map<String, String> attributes = queryToMap(t.getRequestURI().getQuery());
-			String command = "java -cp .:/home/pi/Java/Jars/gson-2.6.2.jar RunBot "+attributes.get("username")+" "+attributes.get("password")+" "+attributes.get("tags")+" "+attributes.get("port");
+			String command = "java -cp .:/home/pi/Java/Jars/gson-2.6.2.jar /home/pi/Java/SlimBot/RunBot "+attributes.get("username")+" "+attributes.get("password")+" "+attributes.get("tags")+" "+attributes.get("port");
 
 			List<String> commandList = new ArrayList<String>();
 			commandList.add("java");
@@ -197,14 +232,14 @@ class BotServer{
 				startedProcesses.remove(attributes.get("username"));
 			}
 
-			System.out.println("befor pb");
+			PrintToConsole.print("befor pb");
 			ProcessBuilder pb = new ProcessBuilder(commandList);
 			//pb.redirectOutput(Redirect.INHERIT);
 			//pb.redirectError(Redirect.INHERIT);
 			pb.inheritIO();
 			Process process = pb.start();
 
-			System.out.println("### after pb.start");
+			PrintToConsole.print("### after pb.start");
 
 			startedProcesses.put(attributes.get("username"), process);	
 			String resp = "Ok";

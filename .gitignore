@@ -1,2 +1,6 @@
 #no .class files
 *.class
+
+/BotServer/build
+/BotServer/.gradle
+/BotClient/build

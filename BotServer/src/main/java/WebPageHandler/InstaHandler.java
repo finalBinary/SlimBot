@@ -1,6 +1,8 @@
 package WebPageHandler;
 
 import WebPageHandler.InstaJsonManager.*;
+import WebPageHandler.InstaJsonManager.InstaGraphQL.*;
+import MyUtilities.*;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -77,6 +79,7 @@ public class InstaHandler extends PageHandler{
 		try{
 			UserJson userJsn = getJsonFromString(GetPageContent(userUrl), UserJson.class);
 			USER_ID = userJsn.getId();
+			System.out.println("--instahandler init succesfull----");
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -207,6 +210,7 @@ public class InstaHandler extends PageHandler{
 		int index = 0;
 		ArrayList<FollowNode> bufList = getFollowing(getFollowingCount(user)).getFollowNodes();
 		for(FollowNode node : bufList){
+				PrintToConsole.print("###"+user+":");
 				unfollow(node.getId());
 				index++;
 
@@ -247,6 +251,7 @@ public class InstaHandler extends PageHandler{
 	}
 
 	public String getJsonString(String html){
+		PrintToConsole.print("getting json string from: "+html);
 		String[] bufArray;
 		Document doc = Jsoup.parse(html);
 		Elements scriptElements = doc.getElementsByTag("script");
@@ -261,7 +266,11 @@ public class InstaHandler extends PageHandler{
 	}
 
 	public static <T> T getJsonFromString(String jsonString, Class<T> var){
+		PrintToConsole.print("-------\njsonStrng:\n"+jsonString+"\n-------");
+		PrintToConsole.print("for class: "+var);
 		GsonBuilder builder = new GsonBuilder();
+		T buf = (T) builder.create().fromJson(jsonString, var);
+		PrintToConsole.print(buf);
 		return builder.create().fromJson(jsonString, var);
 	}
 
@@ -274,9 +283,9 @@ public class InstaHandler extends PageHandler{
 		picJsn = builder.create().fromJson(jsonString, TagJson.class);
 		ScrollJson buf = builder.create().fromJson(jsonString, ScrollJson.class);
 		for(SimpleNode node : picJsn.getSimpleNodes()){
-			printToConsole("id: "+node.getId());
-			printToConsole("Caption:\n"+Arrays.toString(node.getHashtags().toArray())+"\n");
-			printToConsole("Shortcode: "+node.getShortcode());
+			PrintToConsole.print("id: "+node.getId());
+			PrintToConsole.print("Caption:\n"+Arrays.toString(node.getHashtags().toArray())+"\n");
+			PrintToConsole.print("Shortcode: "+node.getShortcode());
 		}
 	}
 
@@ -288,7 +297,8 @@ public class InstaHandler extends PageHandler{
 	public class TagSearchHandler{
 		private final String tag;
 		private String cursor;
-		private TagJson.Tag tagJson;
+		//private TagJson.Tag tagJson;
+		private TagJson tagJson;
 		private ScrollJson scrollJson;
 		ArrayList<SimpleNode> nodeList;
 		private Iterator<SimpleNode> iter;
@@ -302,11 +312,14 @@ public class InstaHandler extends PageHandler{
 
 		private void initialTagSearch(){
 			try{
-				tagJson = (getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.OuterTag.class) ).getTag();
+				//tagJson = (getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.OuterTag.class) ).getTag();
+				tagJson = (getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.class) );
 			} catch(Exception e){
 				e.printStackTrace();
 			}
-			cursor = tagJson.getCursor();
+			//cursor = tagJson.getCursor();
+			cursor = tagJson.getEndCursor();
+			//nodeList = tagJson.getSimpleNodes();
 			nodeList = tagJson.getSimpleNodes();
 			iter = nodeList.iterator();
 		}
@@ -321,67 +334,67 @@ public class InstaHandler extends PageHandler{
 		}
 
 		public void scrollPics(){
-			System.out.println("in scrollPics");
+			PrintToConsole.print("in scrollPics");
 			try{
-				scrollJson = getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}",cursor).replace("{FIRST}","6")), ScrollJson.class);
+				scrollJson = getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}",cursor).replace("{FIRST}","100")), ScrollJson.class);
 			} catch(Exception e){
 				e.printStackTrace();
 			}
 			cursor = scrollJson.getCursor();
 			nodeList = scrollJson.getSimpleNodes();
 			iter = nodeList.iterator();
-			System.out.println("out scrollPics");
+			PrintToConsole.print("out scrollPics");
 
 		}
 
 		public SimpleNode nextNewPic(){
-			printToConsole("nextNewPic");
+			PrintToConsole.print("nextNewPic");
 			SimpleNode bufNode = nextPic();
 			if(bufNode == null){
-				System.out.println("null 1");
+				//System.out.println("null 1");
 				return null;
 			}
 			while(hashId.contains(bufNode.getId())){
-				printToConsole("=============> in nextNewPic while");
+				PrintToConsole.print("=============> in nextNewPic while");
 				bufNode = nextPic();
 				if(bufNode == null){
-					System.out.println("null 2");
+					//System.out.println("null 2");
 					return null;
 				}
 			}
 			hashId.add(bufNode.getId());
-			printToConsole("afte add hashId, size = "+hashId.size());
+			PrintToConsole.print("afte add hashId, size = "+hashId.size());
 			return bufNode;
 
 		}
 
 		public SimpleNode nextPic(){
-			printToConsole("nextPic:");
+			PrintToConsole.print("nextPic:");
 			SimpleNode bufNode;
 			if(!iter.hasNext()){
 				scrollPics();
 				if(cursor.equals("")){
-					System.out.println("cursor empty");
+					PrintToConsole.print("cursor empty");
 					return null;
 				}
 			}
 			while(iter.hasNext()){
-				printToConsole("in while");
+				PrintToConsole.print("in while");
 				bufNode = iter.next();
-				printToConsole("after iter.next()");
+				PrintToConsole.print("after iter.next()");
 				if(bufNode != null){
-					printToConsole("return bufNode");
+					PrintToConsole.print("return bufNode");
 					return bufNode;
 				}
 				if(!iter.hasNext()){
 					scrollPics();
 					if(cursor.equals("")){
-						System.out.println("if: NULL");
+						PrintToConsole.print("if: NULL");
 						return null;
 					}
 				}
 			}
-			System.out.println("OUT NULL");
+			PrintToConsole.print("OUT NULL");
 			return null;
 		}
 

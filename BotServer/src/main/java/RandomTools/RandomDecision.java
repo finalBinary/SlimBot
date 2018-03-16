@@ -31,8 +31,8 @@ public class RandomDecision {
 	return false;
     }
 
-    int randInt(int max) {
-	return randomGenerator.nextInt(max);
+    public int randInt(int max) {
+	return (new Random()).nextInt(max);
     }
 
     public void randomWait(int lower, int upper){
