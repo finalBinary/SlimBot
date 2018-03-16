@@ -48,7 +48,7 @@ public class BotClient{
 
 		//bots.add( new Botlet("geserelumioso", "235711", "8001", "l4l,wood,f4f,followme") );
 		//bots.add( new Botlet("lisicamp", "235711Profile", "8002", "l4l,chanel,fashion,nature,teacher,teacherlife,studying,halifax,canada,oregon,universityoforegon") );
-		bots.add( new Botlet("geserelumioso", "235711", "8002", "l4l,wood,f4f,followme") );
+		bots.add( new Botlet("geserelumioso", "235711", "8003", "l4l,wood,f4f,followme") );
 
 		//bots.add( new Botlet("treemmetries", "ABC123", "8003", "l4l,wood,hiking,nature,wandern,mountains,tree,trees,woods,forest") );
 
