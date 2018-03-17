@@ -19,11 +19,11 @@ public class RandomRingBuffer<T>{
     }
 
     public RandomRingBuffer(List<T> list){
-	System.out.println("---in constructor");
-	System.out.println(list);
-	System.out.println("---after list");
+	PrintToConsole.print("---in constructor");
+	PrintToConsole.print(list);
+	PrintToConsole.print("---after list");
     	valueList.addAll(list);
-	System.out.println("---after add all");
+	PrintToConsole.print("---after add all");
 	bufferList.addAll(valueList);
     }
 

@@ -10,7 +10,7 @@ public class RingBuffer<T>{
 	private int index = 0;
 
 	public RingBuffer(List<T> list){
-	        System.out.println("in Ringbuffer constructor");
+	        PrintToConsole.print("in Ringbuffer constructor");
 		bufList = list;
 		size = list.size();
 	}

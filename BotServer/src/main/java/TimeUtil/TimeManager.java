@@ -1,5 +1,7 @@
 package TimeUtil;
 
+import MyUtilities.PrintToConsole;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -13,11 +15,8 @@ public class TimeManager {
 
     public boolean checkTime(int sec){ //returns false when time has past
 	long diffInSeconds = java.time.Duration.between(start, LocalDateTime.now()).getSeconds();
-	System.out.println("Time left: "+(sec - diffInSeconds));
-	if(sec <= diffInSeconds){
-	    return false;
-	}
-	return true;
+	PrintToConsole.print("Time left: "+(sec - diffInSeconds));
+	return sec > diffInSeconds;
     }
 
 }

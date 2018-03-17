@@ -85,6 +85,9 @@ public class InstaBot extends Thread{
 
 	@Override
 		public void run(){
+			int nrOfNodesContainingTags = 0;
+			int nrOfNodes = 0;
+
 			init();
 			runningFlag.set(true);
 
@@ -120,7 +123,22 @@ public class InstaBot extends Thread{
 
 					randomDecision.randomWait(500, 2000);
 
-					if(currentNode.containsHashtag(tagList) && randomDecision.rand(30)){
+					
+					if(currentNode.containsHashtag(tagList) && nrOfNodes > 0){
+						nrOfNodesContainingTags++;
+						nrOfNodes++;
+						System.out.println("Nr. of Nodes: "+nrOfNodes+"\n"+
+								"Nr. containing Tag: "+nrOfNodesContainingTags+"\n"+
+								"Tag percent: " + (nrOfNodesContainingTags/nrOfNodes)*100 + "%");
+					} else {
+						nrOfNodes++;
+						System.out.println("Nr. of Nodes: "+nrOfNodes+"\n"+
+								"Nr. containing Tag: "+nrOfNodesContainingTags+"\n"+
+								"Tag percent: " + (nrOfNodesContainingTags/nrOfNodes)*100 + "%");
+					}
+					
+
+					if(randomDecision.rand(30)){
 
 						if(randomDecision.rand(2) && followed <= maxFollow){
 							instaHandler.follow(currentNode.getOwner());
