@@ -1,6 +1,6 @@
 package WebPageHandler;
 
-import WebPageHandler.InstaJsonManager.*;
+//import WebPageHandler.InstaJsonManager.*;
 import MyUtilities.PrintToConsole;
 
 import java.io.BufferedReader;
@@ -22,27 +22,31 @@ import java.util.HashSet;
 import java.net.HttpURLConnection;
 import java.util.Iterator;
 
+/*
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.jsoup.Connection;
+*/
 
 import java.io.IOException;
 import java.io.FileWriter;
 import java.util.concurrent.TimeUnit;
-import java.sql.*;
+//import java.sql.*;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.HashMap;
 import java.io.BufferedWriter;
 
+/*
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+*/
 
 public class PageHandler{
 

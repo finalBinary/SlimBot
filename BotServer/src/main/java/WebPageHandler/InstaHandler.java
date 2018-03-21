@@ -3,6 +3,7 @@ package WebPageHandler;
 import WebPageHandler.InstaJsonManager.*;
 import WebPageHandler.InstaJsonManager.InstaGraphQL.*;
 import MyUtilities.*;
+import JsonHandler.*;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -30,20 +31,22 @@ import org.jsoup.select.Elements;
 import org.jsoup.Connection;
 
 import java.io.IOException;
-import java.io.FileWriter;
+//import java.io.FileWriter;
 import java.util.concurrent.TimeUnit;
-import java.sql.*;
-import java.io.File;
+//import java.sql.*;
+//import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.HashMap;
-import java.io.BufferedWriter;
+//import java.io.BufferedWriter;
 
+/*
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.internal.LinkedTreeMap;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+*/
 
 public class InstaHandler extends PageHandler{
 
@@ -72,12 +75,12 @@ public class InstaHandler extends PageHandler{
 	private final String followerUrl = queryUrl +queryId_follower + "&variables={\"id\":\"{USERID}\",\"first\":{FIRST}}";
 	private final String profileUrl = "https://www.instagram.com/{USERNAME}/?__a=1";
 
-	TagJson picJsn;
+	//TagJson picJsn;
 
 	public void initialize(String user){
 		String userUrl = profileUrl.replace("{USERNAME}", user);
 		try{
-			UserJson userJsn = getJsonFromString(GetPageContent(userUrl), UserJson.class);
+			UserJson userJsn = JsonHandler.getJsonFromString(GetPageContent(userUrl), UserJson.class);
 			USER_ID = userJsn.getId();
 			System.out.println("--instahandler init succesfull----");
 		}catch(Exception e){
@@ -107,13 +110,13 @@ public class InstaHandler extends PageHandler{
 		String response;
 
 		try{
-			if (msCookieManager.getCookieStore().getCookies().size() > 0) {
+			//if (msCookieManager.getCookieStore().getCookies().size() > 0) {
 				for (HttpCookie cookie : msCookieManager.getCookieStore().getCookies() ){
 					if(cookie.toString().split("=")[0].equals("csrftoken")){
 						token = cookie.toString().split("=")[1];
 					}
 				}
-			}
+			//}
 
 			final String params = "csrfmiddlewaretoken="+URLEncoder.encode(token, "UTF-8");
 			response = sendPost(logoutUrl, params, logoutRef.replace("{USERNAME}",user));
@@ -128,7 +131,7 @@ public class InstaHandler extends PageHandler{
 
 	public String getFollowedByCount(String user){
 		try{
-			return getJsonFromString(GetPageContent(profileUrl.replace("{USERNAME}",user)), UserJson.class).getFollowedByCount();
+			return JsonHandler.getJsonFromString(GetPageContent(profileUrl.replace("{USERNAME}",user)), UserJson.class).getFollowedByCount();
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -137,7 +140,7 @@ public class InstaHandler extends PageHandler{
 
 	public String getFollowingCount(String user){
 		try{
-			return getJsonFromString(GetPageContent(profileUrl.replace("{USERNAME}",user)), UserJson.class).getFollowCount();
+			return JsonHandler.getJsonFromString(GetPageContent(profileUrl.replace("{USERNAME}",user)), UserJson.class).getFollowCount();
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -146,7 +149,7 @@ public class InstaHandler extends PageHandler{
 
 	public FollowedByJson getFollowedBy(String first){
 		try{
-			return getJsonFromString(GetPageContent(followerUrl.replace("{USERID}",USER_ID).replace("{FIRST}",first)), FollowedByJson.class);
+			return JsonHandler.getJsonFromString(GetPageContent(followerUrl.replace("{USERID}",USER_ID).replace("{FIRST}",first)), FollowedByJson.class);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -155,7 +158,7 @@ public class InstaHandler extends PageHandler{
 
 	public FollowJson getFollowing(String first){
 		try{
-			return getJsonFromString(GetPageContent(followingUrl.replace("{USERID}",USER_ID).replace("{FIRST}",first)), FollowJson.class);
+			return JsonHandler.getJsonFromString(GetPageContent(followingUrl.replace("{USERID}",USER_ID).replace("{FIRST}",first)), FollowJson.class);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -265,6 +268,7 @@ public class InstaHandler extends PageHandler{
 		return "";
 	}
 
+	/*
 	public static <T> T getJsonFromString(String jsonString, Class<T> var){
 		PrintToConsole.print("-------\njsonStrng:\n"+jsonString+"\n-------");
 		PrintToConsole.print("for class: "+var);
@@ -272,13 +276,13 @@ public class InstaHandler extends PageHandler{
 		T buf = (T) builder.create().fromJson(jsonString, var);
 		PrintToConsole.print(buf);
 		return builder.create().fromJson(jsonString, var);
-	}
+	}*/
 
 	public <T> SimpleJson getSimpleJsonFromString(String jsonString, Class<T> type){
-		return (SimpleJson) getJsonFromString(jsonString, type);
+		return (SimpleJson) JsonHandler.getJsonFromString(jsonString, type);
 	}
 
-	public void getJsonFromString(String jsonString){
+	/*public void getJsonFromString(String jsonString){
 		GsonBuilder builder = new GsonBuilder();
 		picJsn = builder.create().fromJson(jsonString, TagJson.class);
 		ScrollJson buf = builder.create().fromJson(jsonString, ScrollJson.class);
@@ -287,12 +291,12 @@ public class InstaHandler extends PageHandler{
 			PrintToConsole.print("Caption:\n"+Arrays.toString(node.getHashtags().toArray())+"\n");
 			PrintToConsole.print("Shortcode: "+node.getShortcode());
 		}
-	}
+	}*/
 
+	/*
 	public void getJson(String html){
 		getJsonFromString(getJsonString(html));
-	}
-
+	}*/
 
 	public class TagSearchHandler{
 		private final String tag;
@@ -313,7 +317,7 @@ public class InstaHandler extends PageHandler{
 		private void initialTagSearch(){
 			try{
 				//tagJson = (getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.OuterTag.class) ).getTag();
-				tagJson = (getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.class) );
+				tagJson = (JsonHandler.getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.class) );
 			} catch(Exception e){
 				e.printStackTrace();
 			}
@@ -326,7 +330,7 @@ public class InstaHandler extends PageHandler{
 
 		private void updateCursor(){
 			try{
-				scrollJson = getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}", cursor).replace("{FIRST}","6")), ScrollJson.class);
+				scrollJson = JsonHandler.getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}", cursor).replace("{FIRST}","6")), ScrollJson.class);
 			} catch(Exception e){
 				e.printStackTrace();
 			}
@@ -336,7 +340,7 @@ public class InstaHandler extends PageHandler{
 		public void scrollPics(){
 			PrintToConsole.print("in scrollPics");
 			try{
-				scrollJson = getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}",cursor).replace("{FIRST}","100")), ScrollJson.class);
+				scrollJson = JsonHandler.getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}",cursor).replace("{FIRST}","100")), ScrollJson.class);
 			} catch(Exception e){
 				e.printStackTrace();
 			}
