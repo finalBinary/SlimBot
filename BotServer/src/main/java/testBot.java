@@ -5,53 +5,19 @@ import TimeUtil.*;
 import RandomTools.*;
 import Bot.*;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.io.PrintWriter;
-import java.io.IOException;
 import java.io.OutputStream;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.URL;
-import java.net.HttpCookie;
-import java.net.URLEncoder;
+import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.StringJoiner;
-import java.util.HashSet;
-import java.net.HttpURLConnection;
-import java.util.Iterator;
 import java.util.Set;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-import org.jsoup.Connection;
-
-import java.io.IOException;
-import java.io.FileWriter;
-import java.util.concurrent.TimeUnit;
-import java.sql.*;
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
 import java.util.HashMap;
-import java.io.BufferedWriter;
 
-import java.lang.Runtime;
 import java.lang.Process;
 import java.lang.ProcessBuilder;
 import java.lang.ProcessBuilder.Redirect;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.internal.LinkedTreeMap;
-import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
 
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
@@ -60,18 +26,14 @@ import java.net.InetSocketAddress;
 
 public class testBot {
 
-
 	public static void main(String[] args){
 		try{
-
 			BotServer serv = new BotServer();
 			serv.start();
-
 		} catch(Exception e){
 			e.printStackTrace();
 		}
 	}
-
 }
 
 class BotServer{
@@ -95,7 +57,6 @@ class BotServer{
 			server.createContext("/stopserver", new stopServerHandler());
 			server.createContext("/start2", new startBotHandler3());
 			server.setExecutor(null); // creates a default executor
-			//System.out.println("\n#####################\n# BotServer Started #\n#####################\n");
 		} catch(Exception e){
 			e.printStackTrace();
 		}
@@ -125,7 +86,6 @@ class BotServer{
 		}
 
 	}
-
 
 	private void addContext(List<Thread> threads){
 		for (Thread thread : threads){

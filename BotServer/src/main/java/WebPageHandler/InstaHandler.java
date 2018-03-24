@@ -5,24 +5,19 @@ import WebPageHandler.InstaJsonManager.InstaGraphQL.*;
 import MyUtilities.*;
 import JsonHandler.*;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.io.PrintWriter;
-import java.net.CookieHandler;
-import java.net.CookieManager;
-import java.net.URL;
 import java.net.HttpCookie;
 import java.net.URLEncoder;
+import java.net.HttpURLConnection;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.HashSet;
-import java.net.HttpURLConnection;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -30,23 +25,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.jsoup.Connection;
 
-import java.io.IOException;
-//import java.io.FileWriter;
-import java.util.concurrent.TimeUnit;
-//import java.sql.*;
-//import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-import java.util.HashMap;
-//import java.io.BufferedWriter;
-
-/*
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.internal.LinkedTreeMap;
-import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
-*/
 
 public class InstaHandler extends PageHandler{
 
@@ -75,8 +53,6 @@ public class InstaHandler extends PageHandler{
 	private final String followerUrl = queryUrl +queryId_follower + "&variables={\"id\":\"{USERID}\",\"first\":{FIRST}}";
 	private final String profileUrl = "https://www.instagram.com/{USERNAME}/?__a=1";
 
-	//TagJson picJsn;
-
 	public void initialize(String user){
 		String userUrl = profileUrl.replace("{USERNAME}", user);
 		try{
@@ -93,12 +69,12 @@ public class InstaHandler extends PageHandler{
 	}
 
 	public String login(String user, String password) {
-		String response;
+		//String response;
 		try{
 			final String params = "username="+URLEncoder.encode(user, "UTF-8")+"&"+"password="+URLEncoder.encode(password, "UTF-8");
 			GetPageContent(loginRefUrl);
-			response = sendPost(loginAjaxUrl, params, loginRefUrl);
-			return response;
+			return sendPost(loginAjaxUrl, params, loginRefUrl);
+			//return response;
 		} catch (Exception e){
 			e.printStackTrace();
 		}
@@ -107,26 +83,23 @@ public class InstaHandler extends PageHandler{
 
 	public String logout(String user){
 		String token = "";
-		String response;
+		//String response;
 
 		try{
-			//if (msCookieManager.getCookieStore().getCookies().size() > 0) {
-				for (HttpCookie cookie : msCookieManager.getCookieStore().getCookies() ){
-					if(cookie.toString().split("=")[0].equals("csrftoken")){
-						token = cookie.toString().split("=")[1];
-					}
+			for (HttpCookie cookie : msCookieManager.getCookieStore().getCookies() ){
+				if(cookie.toString().split("=")[0].equals("csrftoken")){
+					token = cookie.toString().split("=")[1];
 				}
-			//}
+			}
 
 			final String params = "csrfmiddlewaretoken="+URLEncoder.encode(token, "UTF-8");
-			response = sendPost(logoutUrl, params, logoutRef.replace("{USERNAME}",user));
-			return response;
+			return sendPost(logoutUrl, params, logoutRef.replace("{USERNAME}",user));
+			//return response;
 
 		}catch(Exception e){
 			e.printStackTrace();
 		}
 		return "";
-
 	}
 
 	public String getFollowedByCount(String user){
@@ -268,40 +241,13 @@ public class InstaHandler extends PageHandler{
 		return "";
 	}
 
-	/*
-	public static <T> T getJsonFromString(String jsonString, Class<T> var){
-		PrintToConsole.print("-------\njsonStrng:\n"+jsonString+"\n-------");
-		PrintToConsole.print("for class: "+var);
-		GsonBuilder builder = new GsonBuilder();
-		T buf = (T) builder.create().fromJson(jsonString, var);
-		PrintToConsole.print(buf);
-		return builder.create().fromJson(jsonString, var);
-	}*/
-
 	public <T> SimpleJson getSimpleJsonFromString(String jsonString, Class<T> type){
 		return (SimpleJson) JsonHandler.getJsonFromString(jsonString, type);
 	}
 
-	/*public void getJsonFromString(String jsonString){
-		GsonBuilder builder = new GsonBuilder();
-		picJsn = builder.create().fromJson(jsonString, TagJson.class);
-		ScrollJson buf = builder.create().fromJson(jsonString, ScrollJson.class);
-		for(SimpleNode node : picJsn.getSimpleNodes()){
-			PrintToConsole.print("id: "+node.getId());
-			PrintToConsole.print("Caption:\n"+Arrays.toString(node.getHashtags().toArray())+"\n");
-			PrintToConsole.print("Shortcode: "+node.getShortcode());
-		}
-	}*/
-
-	/*
-	public void getJson(String html){
-		getJsonFromString(getJsonString(html));
-	}*/
-
 	public class TagSearchHandler{
 		private final String tag;
 		private String cursor;
-		//private TagJson.Tag tagJson;
 		private TagJson tagJson;
 		private ScrollJson scrollJson;
 		ArrayList<SimpleNode> nodeList;
@@ -316,14 +262,11 @@ public class InstaHandler extends PageHandler{
 
 		private void initialTagSearch(){
 			try{
-				//tagJson = (getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.OuterTag.class) ).getTag();
 				tagJson = (JsonHandler.getJsonFromString(GetPageContent(tagUrl.replace("{TAG}", tag)+"?__a=1"), TagJson.class) );
 			} catch(Exception e){
 				e.printStackTrace();
 			}
-			//cursor = tagJson.getCursor();
 			cursor = tagJson.getEndCursor();
-			//nodeList = tagJson.getSimpleNodes();
 			nodeList = tagJson.getSimpleNodes();
 			iter = nodeList.iterator();
 		}
@@ -348,23 +291,17 @@ public class InstaHandler extends PageHandler{
 			nodeList = scrollJson.getSimpleNodes();
 			iter = nodeList.iterator();
 			PrintToConsole.print("out scrollPics");
-
 		}
 
 		public SimpleNode nextNewPic(){
 			PrintToConsole.print("nextNewPic");
 			SimpleNode bufNode = nextPic();
-			if(bufNode == null){
-				//System.out.println("null 1");
-				return null;
-			}
+			if(bufNode == null) return null;
+			
 			while(hashId.contains(bufNode.getId())){
 				PrintToConsole.print("=============> in nextNewPic while");
 				bufNode = nextPic();
-				if(bufNode == null){
-					//System.out.println("null 2");
-					return null;
-				}
+				if(bufNode == null) return null;
 			}
 			hashId.add(bufNode.getId());
 			PrintToConsole.print("afte add hashId, size = "+hashId.size());

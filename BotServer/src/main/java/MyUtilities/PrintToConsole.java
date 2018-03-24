@@ -1,7 +1,7 @@
 package MyUtilities;
 
 public final class PrintToConsole{
-	private static boolean silent;
+	private static boolean silent = true;
 
 	private PrintToConsole(){
 		silent = true;

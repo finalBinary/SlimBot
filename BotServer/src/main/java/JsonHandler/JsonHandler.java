@@ -16,16 +16,17 @@ import com.google.gson.GsonBuilder;
 
 public class JsonHandler {
 
-	private static GsonBuilder builder;
+	//private static GsonBuilder builder;
 
 	public JsonHandler(){
-		builder = new GsonBuilder();
+		//this.builder = new GsonBuilder();
 	}
 
 	public static <T> T getJsonFromString(String jsonString, Class<T> var){
+		//PrintToConsole.setSilent(false);
 		PrintToConsole.print("-------\njsonStrng:\n"+jsonString+"\n-------");
                 PrintToConsole.print("for class: "+var);
-                //GsonBuilder builder = new GsonBuilder();
+                GsonBuilder builder = new GsonBuilder();
                 T buf = (T) builder.create().fromJson(jsonString, var);
                 PrintToConsole.print(buf);
                 return builder.create().fromJson(jsonString, var);

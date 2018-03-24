@@ -32,13 +32,13 @@ public class InstaBot extends Thread{
 	private String port;
 	private boolean unfollow = true;
 	private int lowerUnfollowNr = 0;
-	private int upperUnfollowNr = 1;
-	private int runTime = (int) (60 * 60 * 2 );
+	private int upperUnfollowNr = 30;
+	private int runTime = (int) (60 * 60 * 3);
 	private boolean infRun = false;
 	private final String username;
 	private final String password;
-	private int maxFollow = 100;
-	private int maxLike = 300;
+	private int maxFollow = 200;
+	private int maxLike = 500;
 
 	private SimpleNode currentNode;
 	private List<String> tagList;
@@ -52,24 +52,19 @@ public class InstaBot extends Thread{
 	BotStats stats;
 
 
-	public InstaBot(String user, String pass, List<String> tags, String prt){
+	public InstaBot(String username, String password, List<String> tags, String port){
 
-		username = user;
-		password = pass;
-		tagList = tags;
-		port = prt;
-		PrintToConsole.print("Port: "+port);
-		Integer.parseInt(port);
-		PrintToConsole.print("after parseInt");
+		this.username = username;
+		this.password = password;
+		this.tagList = tags;
+		this.port = port;
 		this.setName(username);
 
-		//instaHandler = new InstaHandler();
 		randomTagBuffer = new RandomRingBuffer<String>(tags);
 		randomDecision = new RandomDecision(100);
 		timeManager = new TimeManager();
 		stats = new BotStats();
 
-		//instaHandler.initialize(username);
 		runTime = (int) (runTime*(0.9 + (randomDecision.randInt(100)/1000) ));
 	}
 
@@ -78,15 +73,24 @@ public class InstaBot extends Thread{
 	}
 
 	private void  init(){
-		instaHandler = new InstaHandler();
-		instaHandler.silent(false);
-		instaHandler.initialize(username);
+		try{
+			instaHandler = new InstaHandler();
+			instaHandler.silent(false);
+			instaHandler.initialize(username);
+		} catch (Exception e) {
+			stopFlag.set(true);
+			System.out.println("\nBot initialization failed!\n");
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 		public void run(){
 			int nrOfNodesContainingTags = 0;
 			int nrOfNodes = 0;
+
+			//immediately stop if exeption in init occured
+			if(stopFlag.get()) return;
 
 			init();
 			runningFlag.set(true);
@@ -101,7 +105,7 @@ public class InstaBot extends Thread{
 
 			if(unfollow){
 				//unfollow certain number of followers
-				int unfollowed = instaHandler.unfollowChunkProtected(username, 10);
+				int unfollowed = instaHandler.unfollowChunkProtected(username, upperUnfollowNr);
 				stats.setUnfollowedInSession(unfollowed);
 			}
 
@@ -121,7 +125,7 @@ public class InstaBot extends Thread{
 
 					System.out.println("-----------> next new pic");
 
-					randomDecision.randomWait(500, 2000);
+					randomDecision.randomWait(300, 1000);
 
 					
 					if(currentNode.containsHashtag(tagList) && nrOfNodes > 0){
@@ -138,17 +142,17 @@ public class InstaBot extends Thread{
 					}
 					
 
-					if(randomDecision.rand(30)){
+					if(randomDecision.rand(10)){
 
-						if(randomDecision.rand(2) && followed <= maxFollow){
+						if(randomDecision.rand(10) && followed <= maxFollow){
 							instaHandler.follow(currentNode.getOwner());
+							followed++;
 							stats.inkrementFollowedInSession();
-						} else if (randomDecision.rand(6) && liked <= maxLike){
+						} else if (randomDecision.rand(40) && liked <= maxLike){
 							instaHandler.like(currentNode.getId());
+							liked++;
 							stats.inkrementLikedInSession();
 						}
-
-
 					}
 				}
 
