@@ -1,4 +1,5 @@
 import MySQLHandler.*;
+import BotREST.*;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -68,14 +69,14 @@ public class BotClient{
 		ScheduledThreadPoolExecutor singleBotExecutor = new ScheduledThreadPoolExecutor(bots.size());
 
 		( new TerminalInput(bots, client, mainExecutor, stopFlag) ).start();
-		DataServer dataServer = new DataServer();
-		dataServer.start();
+		//DataServer dataServer = new DataServer();
+		BotREST botRest= new BotREST();
+		botRest.start();
+		//dataServer.start();
 
 		System.out.println("Starting mainExecutor");
 		mainExecutor.scheduleAtFixedRate(new RunBotHerd(bots, client, singleBotExecutor, saveBotStatsExecutor), 0, 12, TimeUnit.HOURS);
-
 	}
-
 }
 
 class RunBotHerd implements Runnable{
@@ -105,8 +106,6 @@ class RunBotHerd implements Runnable{
 			}
 		}
 	}
-
-
 }
 
 class SingleBotRun2 {
@@ -134,9 +133,6 @@ class SingleBotRun2 {
 			return 0;
 		}
 	}
-
-	
-
 }
 
 class suplyRuntime implements Supplier<String>{
@@ -182,7 +178,7 @@ class consumeRuntime implements Consumer<String>{
 	}
 }
 
-class SingleBotRun implements Runnable{
+/*class SingleBotRun implements Runnable{
 
 	private Client client;
 	private ScheduledThreadPoolExecutor executor;
@@ -248,7 +244,7 @@ class SingleBotRun implements Runnable{
 		System.out.println("end SingleBotRun");
 	}
 
-}
+}*/
 
 class SaveBotStats extends Thread {
 	Botlet bot;
@@ -263,10 +259,11 @@ class SaveBotStats extends Thread {
 	@Override
 	public void run(){
 		System.out.println("!!! "+bot.getName()+" SaveBotStats Caled !!!");
-		String stats = client.getEndStats(bot);
-		sqlHandler = new MySQLHandler("localhost","InstaBotDB","BotClient","123");
-		sqlHandler.addEntry("InstaBotLog", bot.getName(), stats);
-		sqlHandler.closeConnection();		
+		//String stats = client.getEndStats(bot);
+		//sqlHandler = new MySQLHandler("localhost","InstaBotDB","BotClient","123");
+		//sqlHandler.addEntry("InstaBotLog", bot.getName(), stats);
+		//sqlHandler.closeConnection();	
+		client.saveEndStats(bot);	
 	}
 }
 
@@ -314,6 +311,10 @@ class Client{
 	private final String ServerIp;
 	private final String HerderPort;
 	private final String HerderHost;
+
+	private final String RestIp = "192.178.168.11";
+	private final String RestPort = "7000";
+	private final String RestHost = RestIp + RestPort;
 
 	Client(String ip, String port){
 		ServerIp = ip;
@@ -403,6 +404,22 @@ class Client{
 		}
 	}
 
+	public void saveEndStats(Botlet bot){
+		saveStats(getEndStats(bot), bot.getName());
+	}
+
+	public void saveStats(Botlet bot){
+		saveStats(getStats(bot), bot.getName());
+	}
+
+	public void saveStats(String stats, String name){
+		try{
+			sendPost(RestHost+"/save?username="+name, stats);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+
 	public HashMap<String,String> getStatsAsJson(Botlet bot){
 		try{
 			GsonBuilder builder = new GsonBuilder();
@@ -474,12 +491,56 @@ class Client{
 		//print result
 		System.out.println(response.toString());
 		return response.toString();
-
 	}
+
+	public String sendPost(String url, String body) throws Exception {
+		System.out.println("Sending POST to: " + url);
+		URL obj = new URL(url);
+		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+		// optional default is GET
+		con.setRequestMethod("POST");
+
+		//add request header
+		//con.setRequestProperty("User-Agent", "Mozilla/5.0");
+		con.setRequestProperty("Content-Type", "application/json");
+		
+		if(body != null){
+			con.setRequestProperty("Content-length", body.getBytes().length+"");
+			con.setDoInput(true);
+			con.setDoOutput(true);
+			con.setUseCaches(false);
+
+			OutputStream os = con.getOutputStream();
+			os.write(body.getBytes("UTF-8"));
+			os.close();
+		}
+
+
+		int responseCode = con.getResponseCode();
+		System.out.println("\nSending 'GET' request to URL : " + url);
+		System.out.println("Response Code : " + responseCode);
+
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(con.getInputStream()));
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+
+		while ((inputLine = in.readLine()) != null && inputLine.length() > 0) {
+			//System.out.println("in sendget while: "+inputLine);
+			response.append(inputLine);
+		}
+		in.close();
+
+		//print result
+		System.out.println(response.toString());
+		return response.toString();
+	}
+
 
 }
 
-class DataServer {
+/*class DataServer {
 	private HttpServer server;
 
 	DataServer(){
@@ -585,7 +646,7 @@ class DataServer {
 	}
 		
 	
-}
+}*/
 
 class TerminalInput extends Thread {
 
