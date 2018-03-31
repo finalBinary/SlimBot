@@ -13,6 +13,7 @@ import java.net.CookieManager;
 import java.net.URL;
 import java.net.HttpCookie;
 import java.net.URLEncoder;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
@@ -169,7 +170,7 @@ public class PageHandler{
 	}
     }
 
-    public String GetPageContent(String url) throws Exception {
+    public String GetPageContent(String url) throws SocketException, Exception {
 	PrintToConsole.print("\nGetPageContent: "+url);
 
 	URL obj = new URL(url);

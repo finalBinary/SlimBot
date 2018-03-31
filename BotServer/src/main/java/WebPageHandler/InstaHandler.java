@@ -8,6 +8,7 @@ import JsonHandler.*;
 import java.net.HttpCookie;
 import java.net.URLEncoder;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -280,7 +281,7 @@ public class InstaHandler extends PageHandler{
 			cursor = scrollJson.getCursor();
 		}
 
-		public void scrollPics(){
+		public void scrollPics() throws SocketException{
 			PrintToConsole.print("in scrollPics");
 			try{
 				scrollJson = JsonHandler.getJsonFromString(GetPageContent(scrollUrl.replace("{TAG}",tag).replace("{CURSOR}",cursor).replace("{FIRST}","100")), ScrollJson.class);
@@ -293,7 +294,7 @@ public class InstaHandler extends PageHandler{
 			PrintToConsole.print("out scrollPics");
 		}
 
-		public SimpleNode nextNewPic(){
+		public SimpleNode nextNewPic() throws SocketException{
 			PrintToConsole.print("nextNewPic");
 			SimpleNode bufNode = nextPic();
 			if(bufNode == null) return null;
@@ -309,7 +310,7 @@ public class InstaHandler extends PageHandler{
 
 		}
 
-		public SimpleNode nextPic(){
+		public SimpleNode nextPic() throws SocketException{
 			PrintToConsole.print("nextPic:");
 			SimpleNode bufNode;
 			if(!iter.hasNext()){

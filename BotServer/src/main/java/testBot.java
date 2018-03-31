@@ -152,6 +152,10 @@ class BotServer{
 			Map<String, String> attributes = queryToMap(t.getRequestURI().getQuery());
 			thread = new InstaBot(attributes.get("username"), attributes.get("password"), Arrays.asList(attributes.get("tags").split("\\s*,\\s*")), attributes.get("port"));
 
+			/*if(threadIsRunning(thread.getName())){
+				getThreadByName(thread.getName());
+			}*/
+
 			if(!threadIsRunning(thread.getName())){
 				bufThread = new InstaBot((InstaBot) thread);
 				bufThread.start();
@@ -258,6 +262,14 @@ class BotServer{
 			if(name.equals(thrd.getName())) return true;
 		}
 		return false;
+	}
+
+	private Thread getThreadByName(String name){
+		Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+		for(Thread thrd : threadSet){
+			if(name.equals(thrd.getName())) return thrd;
+		}
+		return null;
 	}
 
 	public static Map<String, String> queryToMap(String query){

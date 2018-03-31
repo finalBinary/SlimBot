@@ -19,6 +19,7 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 
 import com.google.gson.Gson;
 
@@ -33,7 +34,7 @@ public class InstaBot extends Thread{
 	private boolean unfollow = true;
 	private int lowerUnfollowNr = 0;
 	private int upperUnfollowNr = 30;
-	private int runTime = (int) (60 * 60 * 3);
+	private int runTime = (int) (60 * 60 * 2);
 	private boolean infRun = false;
 	private final String username;
 	private final String password;
@@ -66,6 +67,7 @@ public class InstaBot extends Thread{
 		stats = new BotStats();
 
 		runTime = (int) (runTime*(0.9 + (randomDecision.randInt(100)/1000) ));
+		System.out.println("Bot runtime: "+runTime);
 	}
 
 	public InstaBot(InstaBot bot){
@@ -115,52 +117,67 @@ public class InstaBot extends Thread{
 
 				while(pauseFlag.get()){PrintToConsole.print("pause while");};
 
-				InstaHandler.TagSearchHandler tagHandler = instaHandler.new TagSearchHandler(randomTagBuffer.next());
-				PrintToConsole.print("1st while");
+				try{
 
-				while( (currentNode = tagHandler.nextNewPic() ) != null && timeManager.checkTime(runTime) && followed <= maxFollow && liked <= maxLike && !stopFlag.get()){
+					InstaHandler.TagSearchHandler tagHandler = instaHandler.new TagSearchHandler(randomTagBuffer.next());
+					PrintToConsole.print("1st while");
+				
+					while( (currentNode = tagHandler.nextNewPic() ) != null && timeManager.checkTime(runTime) && followed <= maxFollow && liked <= maxLike && !stopFlag.get()){
 
-					while(pauseFlag.get()){PrintToConsole.print("pause while");};
-					PrintToConsole.print("2nd while");
-
-					System.out.println("-----------> next new pic");
-
-					randomDecision.randomWait(300, 1000);
-
-					
-					if(currentNode.containsHashtag(tagList) && nrOfNodes > 0){
-						nrOfNodesContainingTags++;
-						nrOfNodes++;
-						System.out.println("Nr. of Nodes: "+nrOfNodes+"\n"+
-								"Nr. containing Tag: "+nrOfNodesContainingTags+"\n"+
-								"Tag percent: " + (nrOfNodesContainingTags/nrOfNodes)*100 + "%");
-					} else {
-						nrOfNodes++;
-						System.out.println("Nr. of Nodes: "+nrOfNodes+"\n"+
-								"Nr. containing Tag: "+nrOfNodesContainingTags+"\n"+
-								"Tag percent: " + (nrOfNodesContainingTags/nrOfNodes)*100 + "%");
-					}
-					
-
-					if(randomDecision.rand(10)){
-
-						if(randomDecision.rand(10) && followed <= maxFollow){
-							instaHandler.follow(currentNode.getOwner());
-							followed++;
-							stats.inkrementFollowedInSession();
-						} else if (randomDecision.rand(40) && liked <= maxLike){
-							instaHandler.like(currentNode.getId());
-							liked++;
-							stats.inkrementLikedInSession();
+						while(pauseFlag.get()){PrintToConsole.print("pause while");};
+						PrintToConsole.print("2nd while");
+                                        	
+						System.out.println("-----------> next new pic");
+                                        	
+						randomDecision.randomWait(300, 1000);
+                                        	
+						if(currentNode.containsHashtag(tagList) && nrOfNodes > 0){
+							nrOfNodesContainingTags++;
+							nrOfNodes++;
+							System.out.println("Nr. of Nodes: "+nrOfNodes+"\n"+
+									"Nr. containing Tag: "+nrOfNodesContainingTags+"\n"+
+									"Tag percent: " + (nrOfNodesContainingTags/nrOfNodes)*100 + "%");
+						} else {
+							nrOfNodes++;
+							System.out.println("Nr. of Nodes: "+nrOfNodes+"\n"+
+									"Nr. containing Tag: "+nrOfNodesContainingTags+"\n"+
+									"Tag percent: " + (nrOfNodesContainingTags/nrOfNodes)*100 + "%");
+						}
+						
+						if(randomDecision.rand(10)){
+                                        	
+							if(randomDecision.rand(10) && followed <= maxFollow){
+								instaHandler.follow(currentNode.getOwner());
+								followed++;
+								stats.inkrementFollowedInSession();
+							} else if (randomDecision.rand(30) && liked <= maxLike){
+								instaHandler.like(currentNode.getId());
+								liked++;
+								stats.inkrementLikedInSession();
+							}
 						}
 					}
-				}
 
+				} catch (SocketException se){
+					se.printStackTrace();
+
+					//reestablich connection and login
+					System.out.println("\n###\n reestabliching conection and login since SocketException occured\n###");
+					init();
+					instaHandler.login(username, password);
+					randomDecision.randomWait(1000, 2000);
+				} catch (Exception e){
+					e.printStackTrace();
+
+					this.stopBot();
+					System.out.println("\n###\nStopping Bot since exeption occured\n###");
+				}
 			}
 
 			stats.setFollowedBy(Integer.parseInt(instaHandler.getFollowedByCount(username)));
 			stats.setFollowing(Integer.parseInt(instaHandler.getFollowingCount(username)));
 
+			System.out.println("#### loging out ####");
 			instaHandler.logout(username);
 
 			if(timeManager.checkTime(runTime)){//wait untill runtime has passed
