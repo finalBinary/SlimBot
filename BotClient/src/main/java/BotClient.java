@@ -153,7 +153,7 @@ class suplyRuntime implements Supplier<String>{
 				Thread.sleep(1000);
 			} catch(Exception e){
 				System.out.println("######## Exception in suplyRuntime.get()");
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
 		}
 		return runtime;
@@ -312,9 +312,9 @@ class Client{
 	private final String HerderPort;
 	private final String HerderHost;
 
-	private final String RestIp = "192.178.168.11";
+	private final String RestIp = "http://192.168.178.11";
 	private final String RestPort = "7000";
-	private final String RestHost = RestIp + RestPort;
+	private final String RestHost = RestIp + ":" + RestPort;
 
 	Client(String ip, String port){
 		ServerIp = ip;
@@ -414,7 +414,7 @@ class Client{
 
 	public void saveStats(String stats, String name){
 		try{
-			sendPost(RestHost+"/save?username="+name, stats);
+			sendPost(RestHost+"/data?username="+name, stats);
 		} catch (Exception e){
 			e.printStackTrace();
 		}

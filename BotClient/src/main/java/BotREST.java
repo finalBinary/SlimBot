@@ -41,17 +41,18 @@ public class BotREST {
 
 		@Override
 		public void handle(HttpExchange t) throws IOException {
-			System.out.println("dataServer in handler");
+			System.out.println("REST in dataHandler");
 			String resp = "not ok";
 			Map<String, String> attributes = null;
 			String query = t.getRequestURI().getQuery();
 
 			
 			Headers headers = t.getResponseHeaders();
+			System.out.println(t.getRequestMethod().toUpperCase());
 			
-			if(t.getRequestMethod().toUpperCase() == "GET"){
+			if(t.getRequestMethod().toUpperCase().equals("GET")){
 				resp = getData(query);
-			} else if(t.getRequestMethod().toUpperCase() == "POST"){
+			} else if(t.getRequestMethod().toUpperCase().equals("POST")){
 				saveData(query, t.getRequestBody());
 				resp = "ok";
 			}
@@ -72,6 +73,10 @@ public class BotREST {
 		private String getData(String query){
 			String data;
 			Map<String, String> attributes = null;
+
+			System.out.println("getData");
+			System.out.println(query);
+
 				
 			MySQLHandler sqlHandler = new MySQLHandler("localhost","InstaBotDB","BotClient","123");
 			System.out.println("after new MySqlHandler");
@@ -90,9 +95,13 @@ public class BotREST {
 
 		private void saveData(String query, String body){
 			Map<String, String> attributes = null;
+			
+			System.out.println("saveData");
+			System.out.println(query);
 
 			if(body != null && query != null && (attributes = queryToMap(query)) != null){
 				//String stats = client.getEndStats(bot);
+				
 				System.out.println(body);
 	                	sqlHandler = new MySQLHandler("localhost","InstaBotDB","BotClient","123");
         	        	sqlHandler.addEntry("InstaBotLog", attributes.get("username"), body);
